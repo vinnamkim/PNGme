@@ -1,13 +1,13 @@
 use std::{fmt::Display, str::FromStr};
 
 #[derive(PartialEq, Debug)]
-enum ChunkTypeError {
+pub enum ChunkTypeError {
     BytesLengthError,
     NotASCIILetters,
 }
 
 #[derive(PartialEq, Debug)]
-struct ChunkType(u8, u8, u8, u8);
+pub struct ChunkType(u8, u8, u8, u8);
 
 const CHECK_BIT: u8 = 32;
 
@@ -83,27 +83,12 @@ impl FromStr for ChunkType {
         let value = s.as_bytes();
         if value.len() == 4 {
             let arr = [value[0], value[1], value[2], value[3]];
-            // match ChunkType::try_from(arr) {
-            //     Ok(x) => Ok(x),
-            //     Err(x) => Err(x),
-            // }
             ChunkType::try_from(arr)
-            // let value = value[0..4];
-            // let v = ChunkType::try_from();
         } else {
             Err(ChunkTypeError::BytesLengthError)
         }
     }
 }
-
-// impl ToString for ChunkType {
-//     fn to_string(&self) -> String {
-//         format!(
-//             "{}{}{}{}",
-//             self.0 as char, self.1 as char, self.2 as char, self.3 as char
-//         )
-//     }
-// }
 
 impl Display for ChunkType {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
