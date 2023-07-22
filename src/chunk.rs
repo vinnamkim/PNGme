@@ -5,24 +5,32 @@ use crc::{Crc, CRC_32_ISO_HDLC};
 use crate::chunk_type::ChunkType;
 
 #[derive(PartialEq, Debug)]
-enum ChunkError {
+pub enum ChunkError {
     CreationError,
 }
 
-struct Chunk {
+pub struct Chunk {
     _chunk_type: ChunkType,
     _data: Vec<u8>,
+    _length: usize,
+    _crc: u32,
 }
 
 impl Chunk {
     pub fn new(chunk_type: ChunkType, data: Vec<u8>) -> Chunk {
+        let bytes = Chunk::_as_bytes(&chunk_type, data.as_ref());
+        let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC);
+        let length = data.len();
+
         Chunk {
             _chunk_type: chunk_type,
             _data: data,
+            _length: length,
+            _crc: crc.checksum(bytes.as_slice()),
         }
     }
     pub fn length(&self) -> u32 {
-        self._data.len() as u32
+        self._length as u32
     }
     pub fn chunk_type(&self) -> &ChunkType {
         &self._chunk_type
@@ -31,17 +39,27 @@ impl Chunk {
         self._data.as_ref()
     }
     pub fn crc(&self) -> u32 {
-        let crc = Crc::<u32>::new(&CRC_32_ISO_HDLC);
-        crc.checksum(self.as_bytes().as_slice())
+        self._crc
     }
     pub fn data_as_string(&self) -> Result<String, FromUtf8Error> {
         String::from_utf8(self._data.clone())
     }
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self._chunk_type
+    fn _as_bytes(chunk_type: &ChunkType, data: &[u8]) -> Vec<u8> {
+        chunk_type
             .bytes()
             .iter()
-            .chain(self._data.iter())
+            .chain(data.iter())
+            .copied()
+            .collect()
+    }
+    pub fn as_bytes(&self) -> Vec<u8> {
+        let bytes = Chunk::_as_bytes(self.chunk_type(), self.data());
+        let crc = self.crc();
+        self.length()
+            .to_be_bytes()
+            .iter()
+            .chain(bytes.iter())
+            .chain(crc.to_be_bytes().iter())
             .copied()
             .collect()
     }
