@@ -1,6 +1,8 @@
 use std::{fmt::Display, str::FromStr};
 
-#[derive(PartialEq, Debug)]
+use derive_more::{Display, Error};
+
+#[derive(PartialEq, Debug, Display, Error)]
 pub enum ChunkTypeError {
     BytesLengthError,
     NotASCIILetters,

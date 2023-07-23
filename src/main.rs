@@ -10,7 +10,6 @@ pub type Error = Box<dyn std::error::Error>;
 pub type Result<T> = std::result::Result<T, Error>;
 
 fn main() -> Result<()> {
-    let matches = args::PngMeArgs::parse();
-    // let matches = commands::cli().get_matches();
-    Ok(())
+    let result = commands::cli();
+    result
 }

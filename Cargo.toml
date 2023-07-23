@@ -8,3 +8,4 @@ edition = "2021"
 [dependencies]
 clap = {version = "4.3.19", features = ["derive"]}
 crc = "3.0.1"
+derive_more = "0.99.17"

@@ -17,29 +17,29 @@ pub enum PngMeArgs {
 #[derive(clap::Args, Debug)]
 #[command(author, version, about = "Encode a message into a PNG file", long_about = None)]
 pub struct EncodeArgs {
-    filepath: PathBuf,
-    chunk_type: String,
-    data: String,
+    pub filepath: PathBuf,
+    pub chunk_type: String,
+    pub data: String,
 }
 
 #[derive(clap::Args, Debug)]
 #[command(author, version, about="Decode a message stored in a PNG file", long_about = None)]
 pub struct DecodeArgs {
-    filepath: PathBuf,
-    chunk_type: String,
+    pub filepath: PathBuf,
+    pub chunk_type: String,
 }
 
 #[derive(clap::Args, Debug)]
 #[command(author, version, about="Remove a message from a PNG file", long_about = None)]
 pub struct RemoveArgs {
-    filepath: PathBuf,
-    chunk_type: String,
+    pub filepath: PathBuf,
+    pub chunk_type: String,
 }
 
 #[derive(clap::Args, Debug)]
 #[command(author, version, about="Print a list of PNG chunks that can be searched for messages", long_about = None)]
 pub struct PrintArgs {
-    filepath: PathBuf,
+    pub filepath: PathBuf,
 }
 
 #[cfg(test)]

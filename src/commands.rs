@@ -1,59 +1,82 @@
-use clap::{arg, Command};
+use std::error::Error;
+use std::fs::File;
+use std::io::prelude::*;
+use std::str::FromStr;
 
-const ABOUT: &str = r#"
- Your program will have four commands:
+use clap::Parser;
+use derive_more::{Display, Error};
 
-1. Encode a message into a PNG file
-2. Decode a message stored in a PNG file
-3. Remove a message from a PNG file
-4. Print a list of PNG chunks that can be searched for messages
-"#;
+use crate::args::PngMeArgs;
+use crate::chunk::Chunk;
+use crate::chunk_type::ChunkType;
+use crate::png::{Png, PngError};
 
-pub(crate) fn cli() -> Command {
-    Command::new("pngme")
-        .about(ABOUT)
-        .subcommand_required(true)
-        .arg_required_else_help(true)
-        .allow_external_subcommands(true)
-        .subcommand(
-            Command::new("encode")
-                .about("Encode a message into a PNG file")
-                .arg(arg!(<REMOTE> "The remote to clone"))
-                .arg_required_else_help(true),
-        )
-        // .subcommand(
-        //     Command::new("decode")
-        //         .about("Compare two commits")
-        //         .arg(arg!(base: [COMMIT]))
-        //         .arg(arg!(head: [COMMIT]))
-        //         .arg(arg!(path: [PATH]).last(true))
-        //         .arg(
-        //             arg!(--color <WHEN>)
-        //                 .value_parser(["always", "auto", "never"])
-        //                 .num_args(0..=1)
-        //                 .require_equals(true)
-        //                 .default_value("auto")
-        //                 .default_missing_value("always"),
-        //         ),
-        // )
-        // .subcommand(
-        //     Command::new("remove")
-        //         .about("pushes things")
-        //         .arg(arg!(<REMOTE> "The remote to target"))
-        //         .arg_required_else_help(true),
-        // )
-        // .subcommand(
-        //     Command::new("print")
-        //         .about("adds things")
-        //         .arg_required_else_help(true)
-        //         // .arg(arg!(<PATH> ... "Stuff to add").value_parser(clap::value_parser!(PathBuf))),
-        // )
-        // .subcommand(
-        //     Command::new("stash")
-        //         .args_conflicts_with_subcommands(true)
-        //         // .args(push_args())
-        //         // .subcommand(Command::new("push").args(push_args()))
-        //         // .subcommand(Command::new("pop").arg(arg!([STASH])))
-        //         // .subcommand(Command::new("apply").arg(arg!([STASH]))),
-        // )
+#[derive(PartialEq, Debug, Display, Error)]
+pub enum CommandError {
+    NotExistingChunkType,
+}
+
+pub(crate) fn cli() -> Result<(), Box<dyn Error>> {
+    let args = PngMeArgs::parse();
+
+    match args {
+        PngMeArgs::Encode(args) => {
+            if args.filepath.as_path().exists() {
+                let contents = std::fs::read(args.filepath.as_path())?;
+                let mut png = Png::try_from(contents.as_ref())?;
+                let chunk = parse_chunk(args.chunk_type, args.data)?;
+                png.append_chunk(chunk);
+
+                let to_write = png.as_bytes();
+                std::fs::write(args.filepath.as_path(), to_write.as_slice())?;
+                Ok(())
+            } else {
+                let mut file = File::create(args.filepath.as_path())?;
+                let png = Png::from_chunks(vec![parse_chunk(args.chunk_type, args.data)?]);
+
+                file.write_all(png.as_bytes().as_ref())?;
+                Ok(())
+            }
+        }
+        PngMeArgs::Decode(args) => {
+            let contents = std::fs::read(args.filepath.as_path())?;
+            let png = Png::try_from(contents.as_ref())?;
+
+            let chunk = png.chunk_by_type(args.chunk_type.as_str());
+
+            match chunk {
+                Some(x) => {
+                    println!("{}", x);
+                    Ok(())
+                }
+                None => Err(Box::new(CommandError::NotExistingChunkType)),
+            }
+        }
+        PngMeArgs::Remove(args) => {
+            if args.filepath.as_path().exists() {
+                let contents = std::fs::read(args.filepath.as_path())?;
+                let mut png = Png::try_from(contents.as_ref())?;
+                png.remove_chunk(args.chunk_type.as_str())?;
+
+                let to_write = png.as_bytes();
+                std::fs::write(args.filepath.as_path(), to_write.as_slice())?;
+                Ok(())
+            } else {
+                Err(Box::new(CommandError::NotExistingChunkType))
+            }
+        }
+        PngMeArgs::Print(args) => {
+            println!("Print: {}", args.filepath.as_path().display());
+            let contents = std::fs::read(args.filepath.as_path())?;
+            let png = Png::try_from(contents.as_ref())?;
+            println!("{}", png);
+            Ok(())
+        }
+    }
+}
+
+fn parse_chunk(chunk_type: String, data: String) -> Result<Chunk, Box<dyn Error>> {
+    let chunk_type = ChunkType::from_str(chunk_type.as_str())?;
+    let chunk = Chunk::new(chunk_type, data.bytes().collect());
+    Ok(chunk)
 }

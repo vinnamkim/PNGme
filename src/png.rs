@@ -1,8 +1,8 @@
-use std::fmt::Display;
+use derive_more::{Display, Error};
 
 use crate::chunk::{Chunk, ChunkError};
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Display, Error)]
 pub enum PngError {
     InvalidHeader,
     InvalidChunk,
@@ -91,7 +91,7 @@ impl TryFrom<&[u8]> for Png {
     }
 }
 
-impl Display for Png {
+impl std::fmt::Display for Png {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}", String::from_utf8_lossy(self.as_bytes().as_slice()))
     }
